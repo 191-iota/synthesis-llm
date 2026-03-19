@@ -1,0 +1,15 @@
+api_key_env: ANTHROPIC_API_KEY
+model: claude-sonnet-4-20250514
+host: 0.0.0.0
+port: 8899
+max_file_bytes: 500000
+shard_size: 75000
+
+skip_dirs: [node_modules, __pycache__, .git, .svn, .hg, .venv, venv, env, .env, dist, build, .next, .nuxt, .cache, .tmp, tmp, temp, .idea, .vscode, target, out, coverage, .pytest_cache, .mypy_cache, .tox, vendor, bower_components, .terraform]
+
+skip_extensions: [.pyc, .pyo, .o, .so, .dll, .exe, .bin, .lock, .log, .tmp, .swp, .swo, .class, .jar, .war, .whl, .egg, .iso, .img, .dmg, .tar, .gz, .zip, .rar, .7z, .bz2, .xz, .mp3, .mp4, .avi, .mov, .mkv, .wav, .flac, .png, .jpg, .jpeg, .gif, .bmp, .ico, .svg, .webp, .ttf, .woff, .woff2, .eot, .otf, .db, .sqlite, .sqlite3, .pickle, .pkl, .npy, .npz, .h5, .hdf5, .parquet, .arrow, .min.js, .min.css, .map, .DS_Store]
+
+topics:
+  - name: Test
+    paths:
+      - ../test
