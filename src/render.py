@@ -156,11 +156,11 @@ body {
 /* ===== SECTION HEADERS ===== */
 .sec-hdr {
   font-family: 'DM Mono', monospace;
-  font-size: 0.72rem; font-weight: 500;
+  font-size: 0.85rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--text);
-  margin-bottom: 1.1rem;
-  padding-bottom: 0.55rem;
+  color: var(--text-bright);
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.6rem;
   border-bottom: 1px solid var(--border);
 }
 
