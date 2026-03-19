@@ -49,7 +49,7 @@ body {
 
 /* ===== LAYOUT ===== */
 .shell {
-  max-width: 780px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem 6rem;
 }
@@ -83,12 +83,12 @@ body {
 
 /* ===== RISK BANNER ===== */
 .risk {
-  padding: 0.8rem 1.1rem;
-  border-radius: 10px;
+  padding: 1rem 1.3rem;
+  border-radius: 12px;
   border-left: 3px solid;
-  margin-bottom: 2rem;
-  font-size: 0.88rem;
-  line-height: 1.55;
+  margin-bottom: 2.5rem;
+  font-size: 0.9rem;
+  line-height: 1.65;
   color: var(--text-bright);
 }
 .risk.critical { background: var(--crit-soft); border-color: var(--crit); }
@@ -118,11 +118,12 @@ body {
 .next-action {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.6rem 1.5rem;
-  margin-bottom: 2.5rem;
+  border-radius: 16px;
+  padding: 1.9rem 1.8rem;
+  margin-bottom: 3rem;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
 .next-action::before {
   content: '';
@@ -137,14 +138,14 @@ body {
   margin-bottom: 0.6rem;
 }
 .na-title {
-  font-weight: 700; font-size: 1.15rem;
+  font-weight: 700; font-size: 1.2rem;
   color: var(--text-white);
-  line-height: 1.35;
-  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  margin-bottom: 0.55rem;
 }
 .na-detail {
-  font-size: 0.85rem; color: var(--text);
-  line-height: 1.55;
+  font-size: 0.88rem; color: var(--text);
+  line-height: 1.65;
 }
 .na-date {
   font-family: 'DM Mono', monospace;
@@ -155,18 +156,18 @@ body {
 /* ===== SECTION HEADERS ===== */
 .sec-hdr {
   font-family: 'DM Mono', monospace;
-  font-size: 0.6rem; font-weight: 500;
+  font-size: 0.72rem; font-weight: 500;
   text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--text-mid);
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  color: var(--text);
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.55rem;
   border-bottom: 1px solid var(--border);
 }
 
 /* ===== VERTICAL TIMELINE ===== */
 .timeline {
   position: relative;
-  margin-bottom: 3rem;
+  margin-bottom: 3.5rem;
   padding-left: 80px;
 }
 
@@ -261,28 +262,30 @@ body {
 .tl-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.14);
 }
 .tl-card:hover {
   border-color: var(--border-hi);
   background: var(--surface-2);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.22);
 }
 .tl-card-title {
-  font-weight: 600; font-size: 0.85rem;
+  font-weight: 600; font-size: 0.9rem;
   color: var(--text-bright);
-  line-height: 1.35;
+  line-height: 1.4;
 }
 .tl-card-badges {
-  display: flex; gap: 0.3rem; margin-top: 0.35rem;
+  display: flex; gap: 0.4rem; margin-top: 0.4rem;
   flex-wrap: wrap; align-items: center;
 }
 .badge {
   font-family: 'DM Mono', monospace;
-  font-size: 0.52rem; font-weight: 500;
-  padding: 0.15rem 0.4rem; border-radius: 4px;
+  font-size: 0.58rem; font-weight: 500;
+  padding: 0.2rem 0.5rem; border-radius: 4px;
   text-transform: uppercase; letter-spacing: 0.04em;
 }
 .badge.done { background: rgba(16,185,129,0.07); color: var(--good); }
@@ -305,9 +308,9 @@ body {
 }
 .tl-card.open .tl-expand { max-height: 400px; }
 .tl-detail {
-  padding-top: 0.7rem; margin-top: 0.7rem;
+  padding-top: 0.8rem; margin-top: 0.8rem;
   border-top: 1px solid var(--border);
-  font-size: 0.8rem; line-height: 1.6;
+  font-size: 0.82rem; line-height: 1.65;
 }
 .td-row { margin-bottom: 0.3rem; color: var(--text-bright); }
 .td-label {
@@ -349,48 +352,49 @@ body {
 }
 
 /* ===== NO-DATE ITEMS ===== */
-.nd-section { margin-bottom: 3rem; }
+.nd-section { margin-bottom: 3.5rem; }
 .nd-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.5rem;
+  gap: 0.65rem;
 }
 .nd-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.14);
 }
-.nd-card:hover { border-color: var(--border-hi); }
+.nd-card:hover { border-color: var(--border-hi); box-shadow: 0 2px 10px rgba(0,0,0,0.22); }
 .nd-card-title {
-  font-weight: 600; font-size: 0.82rem;
-  color: var(--text-bright); line-height: 1.35;
+  font-weight: 600; font-size: 0.86rem;
+  color: var(--text-bright); line-height: 1.4;
   margin-bottom: 0.3rem;
 }
 .nd-card-detail {
-  font-size: 0.76rem; color: var(--text);
-  line-height: 1.5;
+  font-size: 0.8rem; color: var(--text);
+  line-height: 1.6;
   max-height: 0; overflow: hidden;
   transition: max-height 0.3s;
 }
 .nd-card.open .nd-card-detail { max-height: 300px; padding-top: 0.5rem; border-top: 1px solid var(--border); margin-top: 0.5rem; }
 
 /* ===== GAME PLAN ===== */
-.plan { margin-bottom: 3rem; }
+.plan { margin-bottom: 3.5rem; }
 .plan-step {
-  display: flex; gap: 0.8rem;
-  padding: 0.7rem 0;
+  display: flex; gap: 1rem;
+  padding: 0.9rem 0;
   border-bottom: 1px solid var(--border);
 }
 .plan-step:last-child { border-bottom: none; }
 .plan-num {
   font-family: 'DM Mono', monospace;
-  font-size: 0.62rem; font-weight: 500;
+  font-size: 0.68rem; font-weight: 500;
   color: var(--accent);
   background: var(--accent-soft);
-  min-width: 24px; height: 24px;
+  min-width: 26px; height: 26px;
   border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; margin-top: 0.1rem;
@@ -399,20 +403,21 @@ body {
   color: var(--crit); background: var(--crit-soft);
 }
 .plan-text {
-  font-size: 0.88rem; color: var(--text-bright);
-  line-height: 1.5;
+  font-size: 0.9rem; color: var(--text-bright);
+  line-height: 1.55;
 }
 
 /* ===== BLOCKERS (inline) ===== */
-.blockers { margin-bottom: 3rem; }
+.blockers { margin-bottom: 3.5rem; }
 .blk {
   background: var(--crit-soft);
   border: 1px solid var(--crit-med);
-  border-radius: 10px;
-  padding: 0.85rem 1.1rem;
-  margin-bottom: 0.45rem;
-  font-size: 0.85rem; color: #fca5a5;
-  line-height: 1.5;
+  border-radius: 12px;
+  padding: 1rem 1.3rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.88rem; color: #fca5a5;
+  line-height: 1.6;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.12);
 }
 
 /* ===== CONTEXT DRAWER ===== */
@@ -442,9 +447,10 @@ body {
 .ctx-block {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1rem 1.2rem;
-  margin-bottom: 0.6rem;
+  border-radius: 12px;
+  padding: 1.1rem 1.4rem;
+  margin-bottom: 0.7rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.12);
 }
 .ctx-block-title {
   font-family: 'DM Mono', monospace;
@@ -454,14 +460,14 @@ body {
   margin-bottom: 0.6rem;
 }
 .ctx-text {
-  font-size: 0.84rem; color: var(--text-bright);
-  line-height: 1.6;
+  font-size: 0.86rem; color: var(--text-bright);
+  line-height: 1.65;
 }
 .ctx-rule {
-  padding: 0.4rem 0;
+  padding: 0.45rem 0;
   border-bottom: 1px solid var(--border);
-  font-size: 0.82rem; color: var(--text-bright);
-  line-height: 1.5;
+  font-size: 0.84rem; color: var(--text-bright);
+  line-height: 1.55;
 }
 .ctx-rule:last-child { border-bottom: none; }
 .person-row {
@@ -483,12 +489,15 @@ body {
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 600px) {
-  .shell { padding: 1.5rem 1rem; }
+  .shell { padding: 1.8rem 1rem; }
   .timeline { padding-left: 60px; }
   .timeline::before { left: 48px; }
   .tl-date { width: 50px; right: calc(100% + 16px); font-size: 0.55rem; }
   .tl-today::before { left: -62px; }
   .nd-grid { grid-template-columns: 1fr; }
+  .tl-card { padding: 0.9rem 1rem; }
+  .nd-card { padding: 0.9rem 1rem; }
+  .blk { padding: 0.9rem 1.1rem; }
 }
 </style>
 </head>
