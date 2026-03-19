@@ -2,6 +2,8 @@
 
 Point it at a folder of documents and it gives you a single interactive HTML briefing that tells you where you stand, what's coming up and what to do next.
 
+<img width="1200" height="1461" alt="image" src="https://github.com/user-attachments/assets/e1dff283-92fe-44fb-8f41-84d14e8bdab1" />
+
 ## How it works
 
 The pipeline has four stages that run sequentially.
