@@ -12,6 +12,68 @@ from datetime import datetime
 _model = None
 _model_lock = __import__("threading").Lock()
 
+
+def _find_loopback_device():
+    """Auto-detect the system audio loopback device for the current OS.
+
+    Returns (device_index, use_wasapi_loopback) on success, or None on failure.
+    - Windows: uses WASAPI loopback on the default output device (no extra software needed)
+    - Linux:   finds a PulseAudio/PipeWire monitor source automatically
+    - Mac:     scans for BlackHole or similar virtual audio cable by name
+    """
+    import sys
+    import sounddevice as sd
+
+    platform = sys.platform
+
+    if platform == "win32":
+        # On Windows, WASAPI loopback captures the default output device directly.
+        # We find the default output device index so we can re-open it as a loopback input.
+        try:
+            default_output = sd.default.device[1]  # (input_idx, output_idx)
+            if default_output is None or default_output < 0:
+                devices = sd.query_devices()
+                for i, dev in enumerate(devices):
+                    if dev["max_output_channels"] > 0:
+                        default_output = i
+                        break
+            return (default_output, True)
+        except Exception as e:
+            print(f"  [loopback] Could not find WASAPI output device: {e}")
+            return None
+
+    devices = sd.query_devices()
+
+    if platform == "darwin":
+        # Look for BlackHole, Loopback, or similar virtual audio cables
+        for i, dev in enumerate(devices):
+            name = dev["name"].lower()
+            if any(kw in name for kw in ("blackhole", "loopback", "virtual")):
+                return (i, False)
+        print(
+            "  [loopback] No loopback device found on macOS.\n"
+            "  Install BlackHole: brew install blackhole-2ch\n"
+            "  Then create a Multi-Output Device in Audio MIDI Setup (speakers + BlackHole)\n"
+            "  and set BlackHole as the system input."
+        )
+        return None
+
+    if platform.startswith("linux"):
+        # PulseAudio / PipeWire expose speaker output as a '*.monitor' source
+        for i, dev in enumerate(devices):
+            name = dev["name"].lower()
+            if "monitor" in name:
+                return (i, False)
+        print(
+            "  [loopback] No monitor source found on Linux.\n"
+            "  Make sure PulseAudio or PipeWire is running.\n"
+            "  You can create a loopback with: pactl load-module module-loopback"
+        )
+        return None
+
+    print(f"  [loopback] Unsupported platform for automatic loopback detection: {platform}")
+    return None
+
 def _get_model(model_size="large-v3", device="auto", compute_type="int8"):
     global _model
     with _model_lock:
@@ -32,16 +94,20 @@ class LiveTranscriber:
         # ... lecture happens ...
         t.stop()            # stop capture
         docs = t.as_documents("Lecture Name")  # → list[dict] for extract()
+
+    Pass loopback=True to capture system audio output (Teams/Zoom/Meet) instead
+    of the microphone. The loopback device is detected automatically.
     """
 
     def __init__(self, language="de", initial_prompt="",
                  model_size="large-v3", chunk_seconds=15,
-                 sample_rate=16000):
+                 sample_rate=16000, loopback=False):
         self.language = language
         self.initial_prompt = initial_prompt
         self.model_size = model_size
         self.chunk_seconds = chunk_seconds
         self.sample_rate = sample_rate
+        self.loopback = loopback
 
         self._audio_queue = queue.Queue()
         self._segments = []
@@ -64,16 +130,46 @@ class LiveTranscriber:
         chunk_samples = self.chunk_seconds * self.sample_rate
         buffer = np.empty((0, 1), dtype="float32")
 
-        self._stream = sd.InputStream(
-            samplerate=self.sample_rate,
-            channels=1,
-            dtype="float32",
-            callback=self._audio_callback,
-            blocksize=int(self.sample_rate * 0.5),
-        )
-        self._stream.start()
-        print(f"  🎙  Live capture started ({self.language})")
+        if self.loopback:
+            result = _find_loopback_device()
+            if result is None:
+                print("  Cannot start loopback capture — no loopback device found.")
+                self._running = False
+                return
+            device_index, use_wasapi = result
+            if use_wasapi:
+                # Windows WASAPI loopback: re-open the output device as a loopback input
+                extra = sd.WasapiSettings(exclusive=False, loopback=True)
+                self._stream = sd.InputStream(
+                    device=device_index,
+                    samplerate=self.sample_rate,
+                    channels=1,
+                    dtype="float32",
+                    callback=self._audio_callback,
+                    blocksize=int(self.sample_rate * 0.5),
+                    extra_settings=extra,
+                )
+            else:
+                self._stream = sd.InputStream(
+                    device=device_index,
+                    samplerate=self.sample_rate,
+                    channels=1,
+                    dtype="float32",
+                    callback=self._audio_callback,
+                    blocksize=int(self.sample_rate * 0.5),
+                )
+            print(f"  🔊  Loopback capture started (device {device_index}, {self.language})")
+        else:
+            self._stream = sd.InputStream(
+                samplerate=self.sample_rate,
+                channels=1,
+                dtype="float32",
+                callback=self._audio_callback,
+                blocksize=int(self.sample_rate * 0.5),
+            )
+            print(f"  🎙  Live capture started ({self.language})")
 
+        self._stream.start()
         while self._running:
             # Drain queue into buffer
             try:
@@ -140,7 +236,7 @@ class LiveTranscriber:
 
         self._stream.stop()
         self._stream.close()
-        print("  Microphone stream closed.")
+        print("  Audio stream closed.")
 
     def start(self):
         """Begin live capture + transcription in a background thread."""
