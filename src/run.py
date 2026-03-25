@@ -8,8 +8,13 @@ DIR = Path(__file__).parent
 INDEX = DIR / "index.html"
 
 def load_config():
-    with open(DIR / "config.yaml") as f:
-        return yaml.safe_load(f)
+    for candidate in [DIR / "config.yaml", DIR.parent / "config.yaml"]:
+        if candidate.exists():
+            with open(candidate) as f:
+                return yaml.safe_load(f)
+    raise FileNotFoundError(
+        f"config.yaml not found in {DIR} or {DIR.parent}"
+    )
 
 def generate():
     from ingest import ingest
