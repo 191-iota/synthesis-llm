@@ -4,6 +4,7 @@ the synthesis-llm pipeline without saving recordings to disk.
 Requires: pip install faster-whisper sounddevice numpy
 System:   libportaudio (brew install portaudio / apt install libportaudio2)
 """
+import subprocess
 import threading
 import queue
 import numpy as np
@@ -59,11 +60,45 @@ def _find_loopback_device():
         return None
 
     if platform.startswith("linux"):
-        # PulseAudio / PipeWire expose speaker output as a '*.monitor' source
+        # First try: scan sounddevice for "monitor" in device name (PulseAudio native)
         for i, dev in enumerate(devices):
             name = dev["name"].lower()
             if "monitor" in name:
                 return (i, False)
+
+        # Second try: use pactl to find monitor sources and set as default,
+        # then use the pipewire/default sounddevice device
+        try:
+            result = subprocess.run(
+                ["pactl", "list", "short", "sources"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                monitor_sources = [
+                    line.split("\t")[1] for line in result.stdout.strip().split("\n")
+                    if "monitor" in line.lower()
+                ]
+                if monitor_sources:
+                    # Prefer a RUNNING source, otherwise take the first monitor
+                    chosen = monitor_sources[0]
+                    for line in result.stdout.strip().split("\n"):
+                        if "monitor" in line.lower() and "RUNNING" in line:
+                            chosen = line.split("\t")[1]
+                            break
+
+                    subprocess.run(
+                        ["pactl", "set-default-source", chosen],
+                        capture_output=True, timeout=5
+                    )
+                    print(f"  [loopback] Set PulseAudio default source to: {chosen}")
+
+                    # Now find the pipewire or default device in sounddevice
+                    for i, dev in enumerate(devices):
+                        if dev["name"].lower() in ("pipewire", "default") and dev["max_input_channels"] > 0:
+                            return (i, False)
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+
         print(
             "  [loopback] No monitor source found on Linux.\n"
             "  Make sure PulseAudio or PipeWire is running.\n"
