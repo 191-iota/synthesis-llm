@@ -9,6 +9,13 @@ skip_dirs: [node_modules, __pycache__, .git, .svn, .hg, .venv, venv, env, .env, 
 
 skip_extensions: [.pyc, .pyo, .o, .so, .dll, .exe, .bin, .lock, .log, .tmp, .swp, .swo, .class, .jar, .war, .whl, .egg, .iso, .img, .dmg, .tar, .gz, .zip, .rar, .7z, .bz2, .xz, .mp3, .mp4, .avi, .mov, .mkv, .wav, .flac, .png, .jpg, .jpeg, .gif, .bmp, .ico, .svg, .webp, .ttf, .woff, .woff2, .eot, .otf, .db, .sqlite, .sqlite3, .pickle, .pkl, .npy, .npz, .h5, .hdf5, .parquet, .arrow, .min.js, .min.css, .map, .DS_Store]
 
+live:
+  language: de
+  initial_prompt: "Grüezi, hüt bespräche mer d'Vorlesig..."
+  model_size: large-v3
+  chunk_seconds: 15
+  topic_name: "Live Lecture"
+
 topics:
   - name: Test
     paths:
