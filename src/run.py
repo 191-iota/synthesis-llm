@@ -8,8 +8,13 @@ DIR = Path(__file__).parent
 INDEX = DIR / "index.html"
 
 def load_config():
-    with open(DIR / "config.yaml") as f:
-        return yaml.safe_load(f)
+    for candidate in [DIR / "config.yaml", DIR.parent / "config.yaml"]:
+        if candidate.exists():
+            with open(candidate) as f:
+                return yaml.safe_load(f)
+    raise FileNotFoundError(
+        f"config.yaml not found in {DIR} or {DIR.parent}"
+    )
 
 def generate():
     from ingest import ingest
@@ -50,8 +55,8 @@ def live(cfg):
     """Live transcription mode: capture mic → transcribe → extract → synthesize → render."""
     from transcribe import LiveTranscriber
     from extract import extract
-    from synthesize import synthesize
-    from render import render
+    from synthesize import synthesize_transcript
+    from render import render_transcript
 
     live_cfg = cfg.get("live", {})
     language = live_cfg.get("language", "de")
@@ -90,11 +95,11 @@ def live(cfg):
     print("Extracting...")
     items = extract(docs, topic_name, cfg)
     print("Synthesizing...")
-    report_json = synthesize(topic_name, items, cfg)
+    report_json = synthesize_transcript(topic_name, items, cfg)
     data = json.loads(report_json)
-    reports = [{"name": topic_name, "data": data}]
+    reports = [{"name": topic_name, "data": data, "transcript": docs[0].get("text", "")}]
     print("Rendering...")
-    render(reports, str(INDEX))
+    render_transcript(reports, str(INDEX))
     print("Done.")
 
 
@@ -107,8 +112,8 @@ def live_teams(cfg):
     """
     from transcribe import LiveTranscriber
     from extract import extract
-    from synthesize import synthesize
-    from render import render
+    from synthesize import synthesize_transcript
+    from render import render_transcript
 
     live_cfg = cfg.get("live", {})
     language = live_cfg.get("language", "de")
@@ -149,11 +154,11 @@ def live_teams(cfg):
     print("Extracting...")
     items = extract(docs, topic_name, cfg)
     print("Synthesizing...")
-    report_json = synthesize(topic_name, items, cfg)
+    report_json = synthesize_transcript(topic_name, items, cfg)
     data = json.loads(report_json)
-    reports = [{"name": topic_name, "data": data}]
+    reports = [{"name": topic_name, "data": data, "transcript": docs[0].get("text", "")}]
     print("Rendering...")
-    render(reports, str(INDEX))
+    render_transcript(reports, str(INDEX))
     print("Done.")
 
 def serve(cfg):

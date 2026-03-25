@@ -820,3 +820,515 @@ render();
     with open(output_path, 'w') as f:
         f.write(page)
     print(f"  Wrote {output_path}")
+
+
+def render_transcript(topic_reports, output_path="index.html"):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    js_data = json.dumps(topic_reports, ensure_ascii=False)
+
+    page = """<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Transcript Report</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;800&display=swap');
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #07090e;
+  --surface: #0d1119;
+  --surface-2: #141924;
+  --border: #1c2235;
+  --border-hi: #2a3350;
+  --text: #8890a8;
+  --text-mid: #5c6380;
+  --text-bright: #d0d5e4;
+  --text-white: #eef0f7;
+  --accent: #3b82f6;
+  --accent-soft: rgba(59,130,246,0.08);
+  --crit: #ef4444;
+  --crit-soft: rgba(239,68,68,0.07);
+  --crit-med: rgba(239,68,68,0.18);
+  --warn: #eab308;
+  --warn-soft: rgba(234,179,8,0.07);
+  --warn-med: rgba(234,179,8,0.18);
+  --good: #10b981;
+  --good-soft: rgba(16,185,129,0.07);
+  --info: #818cf8;
+  --info-soft: rgba(129,140,248,0.07);
+}
+
+html { background: var(--bg); }
+body {
+  font-family: 'Sora', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 6rem;
+}
+
+/* ===== HEADER ===== */
+.hdr { margin-bottom: 2rem; }
+.hdr h1 {
+  font-weight: 800; font-size: 1.5rem;
+  color: var(--text-white);
+  letter-spacing: -0.04em;
+}
+.hdr-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem; color: var(--text-mid);
+  margin-top: 0.35rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ===== TOPIC PILLS ===== */
+.topics { display: flex; gap: 0.35rem; margin-bottom: 2rem; flex-wrap: wrap; }
+.tpill {
+  font-family: 'Sora'; font-weight: 600; font-size: 0.75rem;
+  padding: 0.4rem 1rem; border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  cursor: pointer; transition: all 0.2s;
+}
+.tpill:hover { border-color: var(--accent); }
+.tpill.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+/* ===== CONTENT WARNING ===== */
+.cw-banner {
+  padding: 0.9rem 1.3rem;
+  border-radius: 12px;
+  border-left: 3px solid var(--crit);
+  background: var(--crit-soft);
+  margin-bottom: 2rem;
+  font-size: 0.88rem;
+  color: #fca5a5;
+  line-height: 1.6;
+}
+.cw-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--crit);
+  margin-bottom: 0.3rem;
+}
+
+/* ===== SUMMARY ===== */
+.summary-block {
+  padding: 1.1rem 1.4rem;
+  border-radius: 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  margin-bottom: 2.5rem;
+  font-size: 0.92rem;
+  color: var(--text-bright);
+  line-height: 1.7;
+}
+
+/* ===== SECTION HEADERS ===== */
+.sec-hdr {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-bright);
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ===== TOPIC CARDS ===== */
+.topic-list { margin-bottom: 3rem; }
+.topic-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.3rem;
+  margin-bottom: 0.65rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.14);
+}
+.topic-card-heading {
+  font-weight: 600; font-size: 0.95rem;
+  color: var(--text-bright);
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+.topic-card-summary {
+  font-size: 0.86rem; color: var(--text);
+  line-height: 1.65;
+  margin-bottom: 0.7rem;
+}
+.ts-pills { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.ts-pill {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem; font-weight: 500;
+  padding: 0.18rem 0.55rem; border-radius: 99px;
+  background: var(--accent-soft); color: var(--accent);
+  border: 1px solid rgba(59,130,246,0.2);
+}
+.quotes-toggle {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-mid);
+  background: none; border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 0.35rem;
+}
+.quotes-toggle:hover { border-color: var(--border-hi); color: var(--text); }
+.quotes-toggle .arrow { transition: transform 0.2s; display: inline-block; font-size: 0.5rem; }
+.quotes-toggle.open .arrow { transform: rotate(90deg); }
+.quotes-drawer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+.quotes-drawer.open { max-height: 600px; }
+.quote-item {
+  margin-top: 0.6rem;
+  font-style: italic;
+  font-size: 0.83rem;
+  color: var(--text);
+  padding: 0.5rem 0.8rem;
+  border-left: 2px solid var(--border);
+  line-height: 1.6;
+}
+
+/* ===== KEY CLAIMS ===== */
+.claims-list { margin-bottom: 3rem; }
+.claim-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.3rem;
+  margin-bottom: 0.65rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.14);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.claim-card:hover { border-color: var(--border-hi); background: var(--surface-2); }
+.claim-text {
+  font-size: 0.9rem; color: var(--text-bright);
+  line-height: 1.5;
+  margin-bottom: 0.45rem;
+}
+.claim-badges { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
+.badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem; font-weight: 500;
+  padding: 0.2rem 0.5rem; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.badge.speaker { background: var(--accent-soft); color: var(--accent); }
+.badge.ts { background: rgba(92,99,128,0.12); color: var(--text-mid); }
+.claim-expand { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+.claim-card.open .claim-expand { max-height: 300px; }
+.claim-quote {
+  padding-top: 0.7rem;
+  margin-top: 0.7rem;
+  border-top: 1px solid var(--border);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--text);
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--border);
+  line-height: 1.6;
+}
+
+/* ===== PEOPLE GRID ===== */
+.people-section { margin-bottom: 3rem; }
+.people-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.65rem;
+}
+.person-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.14);
+}
+.person-row {
+  display: flex; align-items: center; gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.person-av {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent-soft);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.68rem; color: var(--accent);
+  flex-shrink: 0;
+}
+.person-name { font-weight: 600; font-size: 0.86rem; color: var(--text-bright); }
+.person-role { font-size: 0.75rem; color: var(--text-mid); }
+.person-mentions {
+  list-style: none;
+  padding: 0;
+}
+.person-mentions li {
+  font-size: 0.8rem; color: var(--text);
+  line-height: 1.55;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.person-mentions li:last-child { border-bottom: none; }
+
+/* ===== TAKEAWAYS ===== */
+.takeaways { margin-bottom: 3rem; }
+.takeaway-step {
+  display: flex; gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.takeaway-step:last-child { border-bottom: none; }
+.takeaway-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem; font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+  min-width: 26px; height: 26px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 0.1rem;
+}
+.takeaway-text {
+  font-size: 0.9rem; color: var(--text-bright);
+  line-height: 1.55;
+}
+
+/* ===== TRANSCRIPT DRAWER ===== */
+.ctx-toggle {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-mid);
+  background: none; border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.ctx-toggle:hover { border-color: var(--border-hi); color: var(--text); }
+.ctx-toggle .arrow { transition: transform 0.2s; display: inline-block; font-size: 0.5rem; }
+.ctx-toggle.open .arrow { transform: rotate(90deg); }
+.ctx-drawer { max-height: 0; overflow: hidden; transition: max-height 0.5s ease; }
+.ctx-drawer.open { max-height: 9999px; }
+.transcript-pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.2rem 1.4rem;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.14);
+}
+
+/* ===== EMPTY ===== */
+.empty { text-align:center; padding:3rem; color:var(--text-mid); font-size:0.85rem; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 600px) {
+  .shell { padding: 1.8rem 1rem; }
+  .people-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="hdr">
+    <h1 id="page-title">Transcript Report</h1>
+    <span class="hdr-sub" id="page-sub">Generated """ + now + """</span>
+  </div>
+  <div id="app"></div>
+</div>
+
+<script>
+const DATA = """ + js_data + """;
+
+let S = { topic: 0, claimOpen: new Set(), quotesOpen: new Set(), txOpen: false };
+
+function el(t, a, ...c) {
+  const e = document.createElement(t);
+  if (a) Object.entries(a).forEach(([k,v]) => {
+    if (k === 'cls') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else e.setAttribute(k, v);
+  });
+  c.flat().forEach(ch => { if (ch != null) e.append(typeof ch === 'string' ? document.createTextNode(ch) : ch); });
+  return e;
+}
+
+function initials(n) {
+  return n.split(/\\s+/).filter(w => w.length > 0).map(w => w[0]).join('').toUpperCase().slice(0,2);
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  if (!DATA.length) { app.append(el('div',{cls:'empty'},'No data.')); return; }
+
+  // Topic pills (multi-topic)
+  if (DATA.length > 1) {
+    const tp = el('div',{cls:'topics'});
+    DATA.forEach((t,i) => tp.append(el('button',{
+      cls:'tpill'+(i===S.topic?' on':''),
+      onClick:()=>{S.topic=i;S.claimOpen.clear();S.quotesOpen.clear();S.txOpen=false;render();}
+    },t.name)));
+    app.append(tp);
+  }
+
+  const entry = DATA[S.topic];
+  const d = entry.data || {};
+  const transcript = entry.transcript || '';
+
+  // Update page title
+  document.getElementById('page-title').textContent = d.title || ('Transcript: ' + entry.name);
+  document.getElementById('page-sub').textContent =
+    entry.name + '  \\u2014  Generated """ + now + """';
+
+  // === CONTENT WARNINGS ===
+  const cws = d.content_warnings || [];
+  if (cws.length) {
+    const banner = el('div',{cls:'cw-banner'});
+    banner.append(el('div',{cls:'cw-label'}, 'Content Warning'));
+    cws.forEach(w => banner.append(el('div',{}, w)));
+    app.append(banner);
+  }
+
+  // === SUMMARY ===
+  if (d.summary) {
+    app.append(el('div',{cls:'summary-block'}, d.summary));
+  }
+
+  // === TOPICS DISCUSSED ===
+  const topics = d.topics || [];
+  if (topics.length) {
+    const sec = el('div',{cls:'topic-list'});
+    sec.append(el('div',{cls:'sec-hdr'}, 'Topics Discussed'));
+    topics.forEach((tp,i) => {
+      const card = el('div',{cls:'topic-card'});
+      card.append(el('div',{cls:'topic-card-heading'}, tp.heading || ''));
+      if (tp.summary) card.append(el('div',{cls:'topic-card-summary'}, tp.summary));
+      const tss = tp.timestamps || [];
+      if (tss.length) {
+        const pills = el('div',{cls:'ts-pills'});
+        tss.forEach(ts => pills.append(el('span',{cls:'ts-pill'}, ts)));
+        card.append(pills);
+      }
+      const quotes = tp.key_quotes || [];
+      if (quotes.length) {
+        const isOpen = S.quotesOpen.has(i);
+        const qBtn = el('button',{
+          cls:'quotes-toggle'+(isOpen?' open':''),
+          onClick:()=>{S.quotesOpen.has(i)?S.quotesOpen.delete(i):S.quotesOpen.add(i);render();}
+        }, el('span',{cls:'arrow'}, '\\u25B6'), quotes.length + ' Quote' + (quotes.length>1?'s':''));
+        card.append(qBtn);
+        const qDrawer = el('div',{cls:'quotes-drawer'+(isOpen?' open':'')});
+        quotes.forEach(q => qDrawer.append(el('div',{cls:'quote-item'}, '\\u201C'+q+'\\u201D')));
+        card.append(qDrawer);
+      }
+      sec.append(card);
+    });
+    app.append(sec);
+  }
+
+  // === KEY CLAIMS ===
+  const claims = d.key_claims || [];
+  if (claims.length) {
+    const sec = el('div',{cls:'claims-list'});
+    sec.append(el('div',{cls:'sec-hdr'}, 'Key Claims & Facts'));
+    claims.forEach((cl,i) => {
+      const isOpen = S.claimOpen.has(i);
+      const card = el('div',{
+        cls:'claim-card'+(isOpen?' open':''),
+        onClick:()=>{S.claimOpen.has(i)?S.claimOpen.delete(i):S.claimOpen.add(i);render();}
+      });
+      card.append(el('div',{cls:'claim-text'}, cl.claim || ''));
+      const badges = el('div',{cls:'claim-badges'});
+      if (cl.speaker) badges.append(el('span',{cls:'badge speaker'}, cl.speaker));
+      if (cl.timestamp) badges.append(el('span',{cls:'badge ts'}, cl.timestamp));
+      card.append(badges);
+      if (cl.source_quote) {
+        const exp = el('div',{cls:'claim-expand'});
+        exp.append(el('div',{cls:'claim-quote'}, '\\u201C'+cl.source_quote+'\\u201D'));
+        card.append(exp);
+      }
+      sec.append(card);
+    });
+    app.append(sec);
+  }
+
+  // === PEOPLE ===
+  const people = d.people || [];
+  if (people.length) {
+    const sec = el('div',{cls:'people-section'});
+    sec.append(el('div',{cls:'sec-hdr'}, 'People'));
+    const grid = el('div',{cls:'people-grid'});
+    people.forEach(p => {
+      const card = el('div',{cls:'person-card'});
+      const row = el('div',{cls:'person-row'});
+      row.append(el('div',{cls:'person-av'}, initials(p.name||'?')));
+      const info = el('div',{});
+      info.append(el('div',{cls:'person-name'}, p.name||''));
+      if (p.role) info.append(el('div',{cls:'person-role'}, p.role));
+      row.append(info);
+      card.append(row);
+      const mentions = p.mentions || [];
+      if (mentions.length) {
+        const ul = el('ul',{cls:'person-mentions'});
+        mentions.forEach(m => ul.append(el('li',{}, m)));
+        card.append(ul);
+      }
+      grid.append(card);
+    });
+    sec.append(grid);
+    app.append(sec);
+  }
+
+  // === TAKEAWAYS ===
+  const takeaways = d.takeaways || [];
+  if (takeaways.length) {
+    const sec = el('div',{cls:'takeaways'});
+    sec.append(el('div',{cls:'sec-hdr'}, 'Key Takeaways'));
+    takeaways.forEach((t,i) => {
+      sec.append(el('div',{cls:'takeaway-step'},
+        el('div',{cls:'takeaway-num'}, ''+(i+1)),
+        el('div',{cls:'takeaway-text'}, t)
+      ));
+    });
+    app.append(sec);
+  }
+
+  // === FULL TRANSCRIPT (collapsible) ===
+  if (transcript) {
+    const toggle = el('button',{
+      cls:'ctx-toggle'+(S.txOpen?' open':''),
+      onClick:()=>{S.txOpen=!S.txOpen;render();}
+    },
+      el('span',{cls:'arrow'}, '\\u25B6'),
+      'Full Transcript'
+    );
+    app.append(toggle);
+    const drawer = el('div',{cls:'ctx-drawer'+(S.txOpen?' open':'')});
+    drawer.append(el('pre',{cls:'transcript-pre'}, transcript));
+    app.append(drawer);
+  }
+}
+
+render();
+</script>
+</body></html>"""
+
+    with open(output_path, 'w') as f:
+        f.write(page)
+    print(f"  Wrote {output_path}")
