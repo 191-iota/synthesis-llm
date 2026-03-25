@@ -66,6 +66,7 @@ python3 run.py              # generate and serve
 python3 run.py --generate   # generate only
 python3 run.py --serve      # serve existing
 python3 run.py --live       # live mic transcription → report → serve
+python3 run.py --live-teams # system audio loopback (Teams/Zoom/Meet) → report → serve
 ```
 
 The output is an `index.html` that you can either serve on `localhost:8899` or just open directly.
@@ -87,6 +88,45 @@ python3 run.py --live      # starts mic, press Enter to stop, then generates rep
 ```
 
 On first run, faster-whisper will download the `large-v3` model (~3 GB). Subsequent runs reuse the cached model.
+
+## Teams / Zoom / Meet (system audio loopback)
+
+`--live-teams` captures **whatever audio your system is currently playing** instead of the microphone — so it picks up the lecturer's voice directly from Teams, Zoom, or any other app, without any manual device selection.
+
+```
+[System audio output] → loopback → LiveTranscriber → [in-memory transcript]
+                                                               ↓
+                                               extract → synthesize → render → index.html
+```
+
+**Run:**
+
+```bash
+python3 run.py --live-teams   # captures system audio, press Enter to stop, then generates report and serves
+```
+
+| Mode | Command | Audio source |
+|---|---|---|
+| In-person lecture | `python run.py --live` | Microphone |
+| Teams / Zoom / Meet | `python run.py --live-teams` | System audio output (loopback) |
+
+### Platform support
+
+| OS | How it works | Setup required |
+|---|---|---|
+| **Windows** | WASAPI loopback on the default output device | None — works out of the box ✅ |
+| **Linux** | PulseAudio/PipeWire monitor source (auto-detected) | None — works out of the box ✅ |
+| **macOS** | Scans for BlackHole or similar virtual audio cable | `brew install blackhole-2ch` (one time) |
+
+**macOS one-time setup:**
+
+1. `brew install blackhole-2ch`
+2. Open **Audio MIDI Setup** (Spotlight → "Audio MIDI Setup")
+3. Click **+** → **Create Multi-Output Device** → check both your speakers and **BlackHole 2ch**
+4. Set the Multi-Output Device as your system output in System Settings → Sound
+5. Run `python3 run.py --live-teams` — BlackHole is auto-detected, no config needed
+
+The code scans all audio devices for names containing "blackhole", "loopback", or "virtual" on macOS, and "monitor" on Linux, so no `--device` flag or config entry is ever required.
 
 **Config** (`config.yaml`):
 
