@@ -58,6 +58,108 @@ Other rules:
 - Return ONLY valid JSON."""
 
 
+TRANSCRIPT_SYNTH_PROMPT = """You are analyzing a transcript of spoken content (lecture, interview, meeting, or conversation) about: "{topic}"
+
+Below is the raw timestamped transcript text.
+
+IMPORTANT: This is NOT a project document. Do NOT look for tasks, deadlines, or project statuses.
+Instead:
+- Extract themes and topics discussed, not tasks or deliverables
+- Preserve who said what (speaker attribution)
+- Reference timestamps from the [MM:SS] markers in the transcript
+- Identify key claims and factual statements made
+- Summarize the content for someone who wasn't there
+- Note any content warnings if sensitive topics are discussed (violence, illegal activities, trauma, etc.)
+
+Return ONLY a JSON object with this exact structure:
+{{
+  "title": "descriptive title for what was discussed",
+  "summary": "3-5 sentence summary of the key points discussed",
+  "topics": [
+    {{
+      "heading": "topic or theme discussed",
+      "summary": "what was said about this topic",
+      "timestamps": ["MM:SS"],
+      "key_quotes": ["exact quote from transcript"]
+    }}
+  ],
+  "people": [
+    {{"name": "Person", "role": "their role in the discussion", "mentions": ["what they said or was said about them"]}}
+  ],
+  "key_claims": [
+    {{
+      "claim": "specific factual claim or statement made",
+      "speaker": "who said it or null",
+      "timestamp": "MM:SS or null",
+      "source_quote": "exact quote"
+    }}
+  ],
+  "takeaways": ["key insight or conclusion from the discussion"],
+  "content_warnings": ["any sensitive topics discussed, if applicable"]
+}}
+
+- Be concrete. Use names and timestamps where available.
+- Do NOT invent content. Only use what is in the transcript.
+- Return ONLY valid JSON."""
+
+
+def synthesize_transcript(topic_name, items, cfg):
+    if not items:
+        return json.dumps({
+            "title": f"Transcript: {topic_name}",
+            "summary": f"No content extracted from transcript for {topic_name}.",
+            "topics": [],
+            "people": [],
+            "key_claims": [],
+            "takeaways": [],
+            "content_warnings": []
+        })
+
+    lines = []
+    for i, item in enumerate(items, 1):
+        sources = ", ".join(item.get("_sources", ["unknown"]))
+        quote = item.get("source_quote", "")
+        item_type = item.get("type", "info")
+        detail = item.get("detail", "")
+        people = ", ".join(item.get("people", []))
+        lines.append(
+            f'{i}. [{item_type.upper()}] {item.get("item", "?")}\n'
+            f'   Detail: {detail}\n'
+            f'   People: {people or "none mentioned"}\n'
+            f'   Source: {sources}\n'
+            f'   Quote: "{quote}"'
+        )
+    context = "\n\n".join(lines)
+    raw = ask(TRANSCRIPT_SYNTH_PROMPT.format(topic=topic_name), context, cfg)
+
+    raw = raw.strip()
+    if raw.startswith('```'):
+        raw = raw.split('\n', 1)[-1]
+        if raw.endswith('```'):
+            raw = raw[:-3]
+        raw = raw.strip()
+    try:
+        parsed = json.loads(raw)
+        return json.dumps(parsed)
+    except json.JSONDecodeError:
+        s, e = raw.find('{'), raw.rfind('}')
+        if s >= 0 and e > s:
+            try:
+                parsed = json.loads(raw[s:e+1])
+                return json.dumps(parsed)
+            except json.JSONDecodeError:
+                pass
+        return json.dumps({
+            "title": f"Transcript: {topic_name}",
+            "summary": raw[:500],
+            "topics": [],
+            "people": [],
+            "key_claims": [],
+            "takeaways": [],
+            "content_warnings": []
+        })
+
+
 def synthesize(topic_name, items, cfg):
     if not items:
         return json.dumps({
