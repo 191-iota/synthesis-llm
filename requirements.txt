@@ -1,2 +1,5 @@
 httpx
 pyyaml
+faster-whisper
+sounddevice
+numpy
