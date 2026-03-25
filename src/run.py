@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Usage: python run.py [--generate|--serve]"""
+"""Usage: python run.py [--generate|--serve|--live]"""
 import sys, os, json, yaml
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
@@ -46,6 +46,57 @@ def generate():
     render(reports, str(INDEX))
     print("Done.")
 
+def live(cfg):
+    """Live transcription mode: capture mic → transcribe → extract → synthesize → render."""
+    from transcribe import LiveTranscriber
+    from extract import extract
+    from synthesize import synthesize
+    from render import render
+
+    live_cfg = cfg.get("live", {})
+    language = live_cfg.get("language", "de")
+    prompt = live_cfg.get("initial_prompt", "")
+    model_size = live_cfg.get("model_size", "large-v3")
+    chunk_seconds = live_cfg.get("chunk_seconds", 15)
+    topic_name = live_cfg.get("topic_name", "Live Lecture")
+
+    print(f"\n{'='*50}")
+    print(f"Live Transcription: {topic_name}")
+    print(f"Language: {language} | Model: {model_size} | Chunk: {chunk_seconds}s")
+    print(f"{'='*50}")
+
+    t = LiveTranscriber(
+        language=language,
+        initial_prompt=prompt,
+        model_size=model_size,
+        chunk_seconds=chunk_seconds,
+    )
+    t.start()
+
+    print("\n  Press Enter to stop transcription...\n")
+    try:
+        input()
+    except KeyboardInterrupt:
+        pass
+
+    t.stop()
+    docs = t.as_documents(topic_name)
+
+    if not docs or not docs[0]["text"]:
+        print("No speech detected.")
+        return
+
+    print(f"\n  Transcript: {len(docs[0]['text'])} chars")
+    print("Extracting...")
+    items = extract(docs, topic_name, cfg)
+    print("Synthesizing...")
+    report_json = synthesize(topic_name, items, cfg)
+    data = json.loads(report_json)
+    reports = [{"name": topic_name, "data": data}]
+    print("Rendering...")
+    render(reports, str(INDEX))
+    print("Done.")
+
 def serve(cfg):
     os.chdir(DIR)
     host, port = cfg.get("host", "0.0.0.0"), cfg.get("port", 8899)
@@ -64,6 +115,10 @@ if __name__ == "__main__":
             print("No index.html. Run without --serve first.")
             sys.exit(1)
         serve(cfg)
+    elif "--live" in args:
+        live(cfg)
+        if "--serve" not in args:
+            serve(cfg)
     elif "--generate" in args:
         generate()
     else:

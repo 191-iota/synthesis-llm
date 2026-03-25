@@ -23,6 +23,26 @@ pip install pyyaml httpx --break-system-packages
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
+### Live Transcription (optional)
+
+To use the real-time Whisper transcription mode you need a few extra dependencies.
+
+**System prerequisites:**
+
+```bash
+# macOS
+brew install portaudio
+
+# Debian / Ubuntu
+sudo apt install libportaudio2
+```
+
+**Python dependencies:**
+
+```bash
+pip install faster-whisper sounddevice numpy
+```
+
 ## Config
 
 ```yaml
@@ -45,9 +65,43 @@ Each topic gets its own section in the briefing. You can add as many as you want
 python3 run.py              # generate and serve
 python3 run.py --generate   # generate only
 python3 run.py --serve      # serve existing
+python3 run.py --live       # live mic transcription → report → serve
 ```
 
 The output is an `index.html` that you can either serve on `localhost:8899` or just open directly.
+
+## Live Transcription
+
+`--live` opens the microphone, transcribes in real-time using [faster-whisper](https://github.com/SYSTRAN/faster-whisper), and feeds the result straight into the existing `extract → synthesize → render` pipeline. No audio files are ever written to disk.
+
+```
+[Microphone] → LiveTranscriber → [in-memory transcript]
+                                         ↓
+                               extract → synthesize → render → index.html
+```
+
+**Run:**
+
+```bash
+python3 run.py --live      # starts mic, press Enter to stop, then generates report and serves
+```
+
+On first run, faster-whisper will download the `large-v3` model (~3 GB). Subsequent runs reuse the cached model.
+
+**Config** (`config.yaml`):
+
+```yaml
+live:
+  language: de              # BCP-47 language code; "de" covers Standard German and Swiss German
+  initial_prompt: "Grüezi, hüt bespräche mer d'Vorlesig..."  # seeds the decoder with dialect vocabulary
+  model_size: large-v3      # whisper model to use
+  chunk_seconds: 15         # transcribe every N seconds of captured audio
+  topic_name: "Live Lecture" # name used in the generated report
+```
+
+**Swiss German dialect support:** faster-whisper uses the `language: de` code for all German variants. Seeding the decoder with `initial_prompt` text written in Swiss German (e.g. `"Grüezi, hüt bespräche mer..."`) biases the model toward dialect-specific vocabulary and spelling, improving accuracy for Swiss German speakers.
+
+**Privacy:** no audio is ever saved to disk. All audio is processed in memory and discarded once the transcript is produced.
 
 ## Cost
 
@@ -62,6 +116,7 @@ extract.py     two-pass LLM extraction with confirmation
 synthesize.py  LLM synthesis into structured JSON
 render.py      JSON into interactive HTML
 llm.py         API client with credential scrubbing and retry
+transcribe.py  real-time Whisper mic transcription (--live mode)
 config.yaml    paths and settings
 ```
 
