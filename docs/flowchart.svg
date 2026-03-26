@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 620" font-family="Segoe UI, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#5c6380"/>
+    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#07090e"/>
+      <stop offset="100%" stop-color="#0d1119"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="620" rx="16" fill="url(#bg)"/>
+
+  <!-- Title -->
+  <text x="400" y="40" text-anchor="middle" fill="#eef0f7" font-size="18" font-weight="700" letter-spacing="-0.5">synthesis-llm</text>
+  <text x="400" y="60" text-anchor="middle" fill="#5c6380" font-size="10" letter-spacing="1.5" font-family="monospace">PIPELINE OVERVIEW</text>
+
+  <!-- ========== LEFT PATH: --generate ========== -->
+  <text x="220" y="100" text-anchor="middle" fill="#3b82f6" font-size="11" font-weight="600" font-family="monospace">--generate</text>
+
+  <!-- Ingest -->
+  <rect x="120" y="115" width="200" height="44" rx="10" fill="#141924" stroke="#1c2235" stroke-width="1.5"/>
+  <text x="220" y="133" text-anchor="middle" fill="#d0d5e4" font-size="12" font-weight="600">Ingest</text>
+  <text x="220" y="149" text-anchor="middle" fill="#5c6380" font-size="9">PDFs, Markdown, text files</text>
+
+  <!-- Arrow -->
+  <line x1="220" y1="159" x2="220" y2="185" stroke="#5c6380" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Extract -->
+  <rect x="120" y="190" width="200" height="44" rx="10" fill="#141924" stroke="#1c2235" stroke-width="1.5"/>
+  <text x="220" y="208" text-anchor="middle" fill="#d0d5e4" font-size="12" font-weight="600">Extract</text>
+  <text x="220" y="224" text-anchor="middle" fill="#5c6380" font-size="9">LLM extracts tasks, deadlines, people</text>
+
+  <!-- Arrow -->
+  <line x1="220" y1="234" x2="220" y2="260" stroke="#5c6380" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Synthesize -->
+  <rect x="120" y="265" width="200" height="44" rx="10" fill="#141924" stroke="#3b82f6" stroke-width="1.5" stroke-opacity="0.4"/>
+  <text x="220" y="283" text-anchor="middle" fill="#d0d5e4" font-size="12" font-weight="600">Synthesize</text>
+  <text x="220" y="299" text-anchor="middle" fill="#5c6380" font-size="9">Strategic briefing JSON</text>
+
+  <!-- Arrow -->
+  <line x1="220" y1="309" x2="220" y2="335" stroke="#5c6380" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Render -->
+  <rect x="120" y="340" width="200" height="44" rx="10" fill="#141924" stroke="#3b82f6" stroke-width="1.5" stroke-opacity="0.4"/>
+  <text x="220" y="358" text-anchor="middle" fill="#d0d5e4" font-size="12" font-weight="600">Render</text>
+  <text x="220" y="374" text-anchor="middle" fill="#5c6380" font-size="9">Timeline, risk, game plan HTML</text>
+
+  <!-- Arrow -->
+  <line x1="220" y1="384" x2="220" y2="410" stroke="#5c6380" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Output -->
+  <rect x="140" y="415" width="160" height="36" rx="18" fill="rgba(59,130,246,0.08)" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="220" y="438" text-anchor="middle" fill="#3b82f6" font-size="11" font-weight="600">Strategic Briefing</text>
+
+  <!-- ========== RIGHT PATH: --live / --live-teams ========== -->
+  <text x="580" y="100" text-anchor="middle" fill="#10b981" font-size="11" font-weight="600" font-family="monospace">--live / --live-teams</text>
+
+  <!-- Transcribe -->
+  <rect x="480" y="115" width="200" height="44" rx="10" fill="#141924" stroke="#1c2235" stroke-width="1.5"/>
+  <text x="580" y="133" text-anchor="middle" fill="#d0d5e4" font-size="12" font-weight="600">Transcribe</text>
+  <text x="580" y="149" text-anchor="middle" fill="#5c6380" font-size="9">Whisper: mic or loopback audio</text>
+
+  <!-- Arrow -->
+  <line x1="580" y1="159" x2="580" y2="185" stroke="#5c6380" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Extract -->
+  <rect x="480" y="190" width="200" height="44" rx="10" fill="#141924" stroke="#1c2235" stroke-width="1.5"/>
+  <text x="580" y="208" text-anchor="middle" fill="#d0d5e4" font-size="12" font-weight="600">Extract</text>
+  <text x="580" y="224" text-anchor="middle" fill="#5c6380" font-size="9">LLM extracts claims, themes, people</text>
+
+  <!-- Arrow -->
+  <line x1="580" y1="234" x2="580" y2="260" stroke="#5c6380" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Synthesize Transcript -->
+  <rect x="480" y="265" width="200" height="44" rx="10" fill="#141924" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.4"/>
+  <text x="580" y="283" text-anchor="middle" fill="#d0d5e4" font-size="12" font-weight="600">Synthesize Transcript</text>
+  <text x="580" y="299" text-anchor="middle" fill="#5c6380" font-size="9">Topics, claims, takeaways JSON</text>
+
+  <!-- Arrow -->
+  <line x1="580" y1="309" x2="580" y2="335" stroke="#5c6380" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Render Transcript -->
+  <rect x="480" y="340" width="200" height="44" rx="10" fill="#141924" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.4"/>
+  <text x="580" y="358" text-anchor="middle" fill="#d0d5e4" font-size="12" font-weight="600">Render Transcript</text>
+  <text x="580" y="374" text-anchor="middle" fill="#5c6380" font-size="9">Topics, claims, transcript HTML</text>
+
+  <!-- Arrow -->
+  <line x1="580" y1="384" x2="580" y2="410" stroke="#5c6380" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Output -->
+  <rect x="500" y="415" width="160" height="36" rx="18" fill="rgba(16,185,129,0.08)" stroke="#10b981" stroke-width="1.5"/>
+  <text x="580" y="438" text-anchor="middle" fill="#10b981" font-size="11" font-weight="600">Transcript Summary</text>
+
+  <!-- ========== SHARED: Serve ========== -->
+  <!-- Arrows converging -->
+  <line x1="220" y1="451" x2="220" y2="480" stroke="#5c6380" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="580" y1="451" x2="580" y2="480" stroke="#5c6380" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="220" y1="480" x2="400" y2="500" stroke="#5c6380" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <line x1="580" y1="480" x2="400" y2="500" stroke="#5c6380" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+  <!-- Serve box -->
+  <rect x="310" y="500" width="180" height="40" rx="10" fill="#141924" stroke="#1c2235" stroke-width="1.5"/>
+  <text x="400" y="518" text-anchor="middle" fill="#d0d5e4" font-size="12" font-weight="600">Serve</text>
+  <text x="400" y="532" text-anchor="middle" fill="#5c6380" font-size="9">localhost:8899 → index.html</text>
+
+  <!-- ========== SHARED: LLM label ========== -->
+  <rect x="340" y="256" width="120" height="24" rx="12" fill="rgba(129,140,248,0.08)" stroke="#818cf8" stroke-width="1" stroke-opacity="0.3"/>
+  <text x="400" y="272" text-anchor="middle" fill="#818cf8" font-size="9" font-weight="600">LLM (OpenAI / local)</text>
+
+  <!-- Dashed lines to LLM -->
+  <line x1="320" y1="287" x2="345" y2="272" stroke="#818cf8" stroke-width="0.8" stroke-dasharray="3,3" stroke-opacity="0.4"/>
+  <line x1="480" y1="287" x2="455" y2="272" stroke="#818cf8" stroke-width="0.8" stroke-dasharray="3,3" stroke-opacity="0.4"/>
+
+  <!-- ========== Footer ========== -->
+  <text x="400" y="580" text-anchor="middle" fill="#5c6380" font-size="8.5">run.py auto-detects mode  |  --generate uses project pipeline  |  --live/--live-teams uses transcript pipeline</text>
+  <text x="400" y="598" text-anchor="middle" fill="#3a3f54" font-size="8">config.yaml controls topics, language, model, chunk size</text>
+</svg>
