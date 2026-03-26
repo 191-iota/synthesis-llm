@@ -1,10 +1,89 @@
-# synthesis_llm
+# synthesis
 
 Point it at a folder of documents for an interactive HTML briefing, or use live transcription mode to capture lectures and meetings into a structured transcript report.
 
 <img width="1200" height="1461" alt="image" src="https://github.com/user-attachments/assets/e1dff283-92fe-44fb-8f41-84d14e8bdab1" />
 
-## How it works
+### Document mode
+
+```mermaid
+graph LR
+    A[Docs] --> B[Ingest]
+    B --> C[Extract\n2-pass + confirm]
+    C --> D[Synthesize]
+    D --> E[Render]
+    E --> F[HTML Briefing]
+```
+
+### Live / Transcript mode
+
+```mermaid
+graph LR
+    A[Audio] --> B[Transcribe\nWhisper]
+    B --> C[Extract]
+    C --> D[Synthesize Transcript]
+    D --> E[Render Transcript]
+    E --> F[HTML Report]
+```
+
+## Quick Start
+
+```bash
+# 1. Install dependencies
+pip install pyyaml httpx --break-system-packages
+
+# 2. Set your API key
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# 3. Edit config.yaml with your document paths, then run
+python3 run.py
+```
+
+For live transcription, also install: `pip install faster-whisper sounddevice numpy` (plus `brew install portaudio` on macOS or `sudo apt install libportaudio2` on Linux).
+
+## Config
+
+```yaml
+api_key_env: ANTHROPIC_API_KEY
+model: claude-sonnet-4-20250514
+shard_size: 75000
+
+topics:
+  - name: My Project
+    paths:
+      - /path/to/docs
+      - github:user/repo
+```
+
+Each topic gets its own section in the briefing. You can add as many as you want and each one will be processed independently.
+
+## Run
+
+| Command | What it does |
+|---|---|
+| `python3 run.py` | Generate briefing and serve |
+| `python3 run.py --generate` | Generate only |
+| `python3 run.py --serve` | Serve existing output |
+| `python3 run.py --live` | Live mic transcription → report → serve |
+| `python3 run.py --live-teams` | System audio loopback (Teams/Zoom/Meet) → report → serve |
+
+The output is an `index.html` served on `localhost:8899` or open it directly in a browser.
+
+## Files
+
+```
+run.py         orchestrator
+ingest.py      file walker and text extraction
+extract.py     two-pass LLM extraction with confirmation
+synthesize.py  synthesize() for document briefings; synthesize_transcript() for live transcript reports
+render.py      render() for document briefings; render_transcript() for live transcript reports
+llm.py         API client with credential scrubbing and retry
+transcribe.py  real-time Whisper mic transcription (--live mode)
+config.yaml    paths and settings
+```
+
+<details>
+<summary><strong>How it works</strong></summary>
 
 There are two pipeline paths depending on the mode.
 
@@ -26,62 +105,10 @@ There are two pipeline paths depending on the mode.
 
 **Render Transcript** takes that JSON and generates a self-contained HTML report with a summary section, topic cards, key claims, people, takeaways, and a collapsible full transcript.
 
-## Setup
+</details>
 
-```bash
-pip install pyyaml httpx --break-system-packages
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-### Live Transcription (optional)
-
-To use the real-time Whisper transcription mode you need a few extra dependencies.
-
-**System prerequisites:**
-
-```bash
-# macOS
-brew install portaudio
-
-# Debian / Ubuntu
-sudo apt install libportaudio2
-```
-
-**Python dependencies:**
-
-```bash
-pip install faster-whisper sounddevice numpy
-```
-
-## Config
-
-```yaml
-api_key_env: ANTHROPIC_API_KEY
-model: claude-sonnet-4-20250514
-shard_size: 75000
-
-topics:
-  - name: My Project
-    paths:
-      - /path/to/docs
-      - github:user/repo
-```
-
-Each topic gets its own section in the briefing. You can add as many as you want and each one will be processed independently.
-
-## Run
-
-```bash
-python3 run.py              # generate and serve
-python3 run.py --generate   # generate only
-python3 run.py --serve      # serve existing
-python3 run.py --live       # live mic transcription → report → serve
-python3 run.py --live-teams # system audio loopback (Teams/Zoom/Meet) → report → serve
-```
-
-The output is an `index.html` that you can either serve on `localhost:8899` or just open directly.
-
-## Live Transcription
+<details>
+<summary><strong>Live Transcription</strong></summary>
 
 `--live` opens the microphone, transcribes in real-time using [faster-whisper](https://github.com/SYSTRAN/faster-whisper), and feeds the result into the transcript pipeline `extract → synthesize_transcript → render_transcript`. No audio files are ever written to disk.
 
@@ -91,15 +118,7 @@ The output is an `index.html` that you can either serve on `localhost:8899` or j
                                extract → synthesize_transcript → render_transcript → index.html
 ```
 
-**Run:**
-
-```bash
-python3 run.py --live      # starts mic, press Enter to stop, then generates report and serves
-```
-
 On first run, faster-whisper will download the `large-v3` model (~3 GB). Subsequent runs reuse the cached model.
-
-## Teams / Zoom / Meet (system audio loopback)
 
 `--live-teams` captures **whatever audio your system is currently playing** instead of the microphone — so it picks up the lecturer's voice directly from Teams, Zoom, or any other app, without any manual device selection.
 
@@ -107,12 +126,6 @@ On first run, faster-whisper will download the `large-v3` model (~3 GB). Subsequ
 [System audio output] → loopback → LiveTranscriber → [in-memory transcript]
                                                                |
                                                extract → synthesize_transcript → render_transcript → index.html
-```
-
-**Run:**
-
-```bash
-python3 run.py --live-teams   # captures system audio, press Enter to stop, then generates report and serves
 ```
 
 | Mode | Command | Audio source |
@@ -153,22 +166,14 @@ live:
 
 **Privacy:** no audio is ever saved to disk. All audio is processed in memory and discarded once the transcript is produced.
 
-## Cost
+</details>
+
+<details>
+<summary><strong>Cost</strong></summary>
 
 Each topic with N document shards makes roughly 3N + 1 API calls since every shard goes through extract, re-extract and confirm, plus one synthesize call at the end. On Anthropic API Tier 1 you're limited to 8k output tokens per minute, so keep `workers = 1` in `extract.py` to avoid getting rate limited. The retry logic in `llm.py` handles 429s with exponential backoff if it does happen.
 
-## Files
-
-```
-run.py         orchestrator
-ingest.py      file walker and text extraction
-extract.py     two-pass LLM extraction with confirmation
-synthesize.py  synthesize() for document briefings; synthesize_transcript() for live transcript reports
-render.py      render() for document briefings; render_transcript() for live transcript reports
-llm.py         API client with credential scrubbing and retry
-transcribe.py  real-time Whisper mic transcription (--live mode)
-config.yaml    paths and settings
-```
+</details>
 
 ## License
 
