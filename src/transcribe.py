@@ -1,4 +1,4 @@
-"""Real-time Whisper transcription — streams mic audio directly into
+"""Real-time Whisper transcription -- streams mic audio directly into
 the synthesis-llm pipeline without saving recordings to disk.
 
 Requires: pip install faster-whisper sounddevice numpy
@@ -13,7 +13,6 @@ from datetime import datetime
 _model = None
 _model_lock = __import__("threading").Lock()
 
-
 def _find_loopback_device():
     """Auto-detect the system audio loopback device for the current OS.
 
@@ -21,7 +20,7 @@ def _find_loopback_device():
     - Windows: uses WASAPI loopback on the default output device (no extra software needed)
     - Linux:   finds a PulseAudio/PipeWire monitor source automatically
     - Mac:     scans for BlackHole or similar virtual audio cable by name
-    """
+    """    
     import sys
     import sounddevice as sd
 
@@ -124,11 +123,11 @@ class LiveTranscriber:
     and accumulates a running transcript in memory.
 
     Usage:
-        t = LiveTranscriber(language="de", initial_prompt="Grüezi...")
+        t = LiveTranscriber(language="de", initial_prompt="Gruezi...")
         t.start()          # begins listening
         # ... lecture happens ...
         t.stop()            # stop capture
-        docs = t.as_documents("Lecture Name")  # → list[dict] for extract()
+        docs = t.as_documents("Lecture Name")  # -> list[dict] for extract()
 
     Pass loopback=True to capture system audio output (Teams/Zoom/Meet) instead
     of the microphone. The loopback device is detected automatically.
@@ -153,7 +152,7 @@ class LiveTranscriber:
         self._audio_offset_seconds = 0.0
 
     def _audio_callback(self, indata, frames, time_info, status):
-        """Called by sounddevice for each audio block — just enqueues."""
+        """Called by sounddevice for each audio block -- just enqueues."""
         if status:
             print(f"  [audio] {status}")
         self._audio_queue.put(indata.copy())
@@ -168,7 +167,7 @@ class LiveTranscriber:
         if self.loopback:
             result = _find_loopback_device()
             if result is None:
-                print("  Cannot start loopback capture — no loopback device found.")
+                print("  Cannot start loopback capture -- no loopback device found.")
                 self._running = False
                 return
             device_index, use_wasapi = result
@@ -193,7 +192,7 @@ class LiveTranscriber:
                     callback=self._audio_callback,
                     blocksize=int(self.sample_rate * 0.5),
                 )
-            print(f"  🔊  Loopback capture started (device {device_index}, {self.language})")
+            print(f"  [loopback] Capture started (device {device_index}, {self.language})")
         else:
             self._stream = sd.InputStream(
                 samplerate=self.sample_rate,
@@ -202,7 +201,7 @@ class LiveTranscriber:
                 callback=self._audio_callback,
                 blocksize=int(self.sample_rate * 0.5),
             )
-            print(f"  🎙  Live capture started ({self.language})")
+            print(f"  [mic] Live capture started ({self.language})")
 
         self._stream.start()
         while self._running:
@@ -240,7 +239,7 @@ class LiveTranscriber:
 
                 self._audio_offset_seconds += self.chunk_seconds
 
-                # Feed last transcript as prompt context → improves
+                # Feed last transcript as prompt context -- improves
                 # continuity and Swiss German consistency
                 if self._segments:
                     self._prompt = " ".join(
