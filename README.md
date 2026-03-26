@@ -1,10 +1,50 @@
-# synthesis_llm
+# synthesis
 
 Point it at a folder of documents for an interactive HTML briefing, or use live transcription mode to capture lectures and meetings into a structured transcript report.
 
 <img width="1200" height="1461" alt="image" src="https://github.com/user-attachments/assets/e1dff283-92fe-44fb-8f41-84d14e8bdab1" />
 
-## How it works
+## Pipelines
+
+**Document mode** — point it at a folder of docs and get a strategic HTML briefing:
+
+```mermaid
+graph LR
+    A[Docs] --> B[Ingest]
+    B --> C["Extract\n(2-pass + confirm)"]
+    C --> D[Synthesize]
+    D --> E[Render]
+    E --> F[HTML Briefing]
+```
+
+**Live / Transcript mode** — capture a lecture or meeting and get a structured report:
+
+```mermaid
+graph LR
+    A[Audio] --> B["Transcribe\n(Whisper)"]
+    B --> C[Extract]
+    C --> D[Synthesize Transcript]
+    D --> E[Render Transcript]
+    E --> F[HTML Report]
+```
+
+## Quick Start
+
+```bash
+# 1. Install dependencies
+pip install pyyaml httpx --break-system-packages
+
+# 2. Set your API key
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# 3. Edit config.yaml with your doc paths (see Config section below)
+
+# 4. Run
+python3 run.py
+```
+
+<details>
+<summary><strong>How it works</strong></summary>
 
 There are two pipeline paths depending on the mode.
 
@@ -26,32 +66,7 @@ There are two pipeline paths depending on the mode.
 
 **Render Transcript** takes that JSON and generates a self-contained HTML report with a summary section, topic cards, key claims, people, takeaways, and a collapsible full transcript.
 
-## Setup
-
-```bash
-pip install pyyaml httpx --break-system-packages
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-### Live Transcription (optional)
-
-To use the real-time Whisper transcription mode you need a few extra dependencies.
-
-**System prerequisites:**
-
-```bash
-# macOS
-brew install portaudio
-
-# Debian / Ubuntu
-sudo apt install libportaudio2
-```
-
-**Python dependencies:**
-
-```bash
-pip install faster-whisper sounddevice numpy
-```
+</details>
 
 ## Config
 
@@ -71,17 +86,34 @@ Each topic gets its own section in the briefing. You can add as many as you want
 
 ## Run
 
+| Command | What it does |
+|---|---|
+| `python3 run.py` | Generate briefing and serve |
+| `python3 run.py --generate` | Generate only |
+| `python3 run.py --serve` | Serve existing `index.html` on `localhost:8899` |
+| `python3 run.py --live` | Live mic transcription → report → serve |
+| `python3 run.py --live-teams` | System audio loopback (Teams/Zoom/Meet) → report → serve |
+
+<details>
+<summary><strong>Live Transcription — setup, platform support, and config</strong></summary>
+
+To use the real-time Whisper transcription mode you need a few extra dependencies.
+
+**System prerequisites:**
+
 ```bash
-python3 run.py              # generate and serve
-python3 run.py --generate   # generate only
-python3 run.py --serve      # serve existing
-python3 run.py --live       # live mic transcription → report → serve
-python3 run.py --live-teams # system audio loopback (Teams/Zoom/Meet) → report → serve
+# macOS
+brew install portaudio
+
+# Debian / Ubuntu
+sudo apt install libportaudio2
 ```
 
-The output is an `index.html` that you can either serve on `localhost:8899` or just open directly.
+**Python dependencies:**
 
-## Live Transcription
+```bash
+pip install faster-whisper sounddevice numpy
+```
 
 `--live` opens the microphone, transcribes in real-time using [faster-whisper](https://github.com/SYSTRAN/faster-whisper), and feeds the result into the transcript pipeline `extract → synthesize_transcript → render_transcript`. No audio files are ever written to disk.
 
@@ -91,15 +123,7 @@ The output is an `index.html` that you can either serve on `localhost:8899` or j
                                extract → synthesize_transcript → render_transcript → index.html
 ```
 
-**Run:**
-
-```bash
-python3 run.py --live      # starts mic, press Enter to stop, then generates report and serves
-```
-
 On first run, faster-whisper will download the `large-v3` model (~3 GB). Subsequent runs reuse the cached model.
-
-## Teams / Zoom / Meet (system audio loopback)
 
 `--live-teams` captures **whatever audio your system is currently playing** instead of the microphone — so it picks up the lecturer's voice directly from Teams, Zoom, or any other app, without any manual device selection.
 
@@ -107,12 +131,6 @@ On first run, faster-whisper will download the `large-v3` model (~3 GB). Subsequ
 [System audio output] → loopback → LiveTranscriber → [in-memory transcript]
                                                                |
                                                extract → synthesize_transcript → render_transcript → index.html
-```
-
-**Run:**
-
-```bash
-python3 run.py --live-teams   # captures system audio, press Enter to stop, then generates report and serves
 ```
 
 | Mode | Command | Audio source |
@@ -153,9 +171,14 @@ live:
 
 **Privacy:** no audio is ever saved to disk. All audio is processed in memory and discarded once the transcript is produced.
 
-## Cost
+</details>
+
+<details>
+<summary><strong>Cost</strong></summary>
 
 Each topic with N document shards makes roughly 3N + 1 API calls since every shard goes through extract, re-extract and confirm, plus one synthesize call at the end. On Anthropic API Tier 1 you're limited to 8k output tokens per minute, so keep `workers = 1` in `extract.py` to avoid getting rate limited. The retry logic in `llm.py` handles 429s with exponential backoff if it does happen.
+
+</details>
 
 ## Files
 
