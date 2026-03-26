@@ -1,12 +1,14 @@
 # synthesis_llm
 
-Point it at a folder of documents and it gives you a single interactive HTML briefing that tells you where you stand, what's coming up and what to do next.
+Point it at a folder of documents for an interactive HTML briefing, or use live transcription mode to capture lectures and meetings into a structured transcript report.
 
 <img width="1200" height="1461" alt="image" src="https://github.com/user-attachments/assets/e1dff283-92fe-44fb-8f41-84d14e8bdab1" />
 
 ## How it works
 
-The pipeline has four stages that run sequentially.
+There are two pipeline paths depending on the mode.
+
+**Document mode** (`--generate`): `ingest → extract → synthesize → render` — produces a Strategic Briefing.
 
 **Ingest** walks through all configured paths and reads everything it can. PDFs go through `pdftotext`, DOCX through `pandoc`, and anything that isn't binary gets read as plain text. It also supports cloning GitHub repos if you prefix the path with `github:user/repo`.
 
@@ -15,6 +17,14 @@ The pipeline has four stages that run sequentially.
 **Synthesize** collects all confirmed items and asks the LLM to produce a structured JSON briefing with a status summary, risk level, each item with its date and urgency and dependencies, a recommended action sequence, any blockers, and key rules or constraints from the documents. Past deadlines are assumed done unless the documents explicitly say otherwise, so it doesn't panic about things you've already handled.
 
 **Render** takes that JSON and generates a self-contained HTML file with a vertical timeline where a TODAY line separates what's behind from what's ahead, expandable cards for each item, a game plan section and a collapsible drawer for context like rules and people. No frameworks and no build step, just open the file in a browser.
+
+**Live/transcript mode** (`--live`, `--live-teams`): `transcribe → extract → synthesize_transcript → render_transcript` — produces a Transcript Report.
+
+**Transcribe** captures audio in real time via faster-whisper (microphone or system loopback) and produces an in-memory transcript. No audio is ever written to disk.
+
+**Synthesize Transcript** takes the extracted items and asks the LLM to produce a structured JSON transcript report with a summary, topics, key claims, speakers, and takeaways — oriented around what was said rather than what needs to be done.
+
+**Render Transcript** takes that JSON and generates a self-contained HTML report with a summary section, topic cards, key claims, people, takeaways, and a collapsible full transcript.
 
 ## Setup
 
@@ -73,12 +83,12 @@ The output is an `index.html` that you can either serve on `localhost:8899` or j
 
 ## Live Transcription
 
-`--live` opens the microphone, transcribes in real-time using [faster-whisper](https://github.com/SYSTRAN/faster-whisper), and feeds the result straight into the existing `extract → synthesize → render` pipeline. No audio files are ever written to disk.
+`--live` opens the microphone, transcribes in real-time using [faster-whisper](https://github.com/SYSTRAN/faster-whisper), and feeds the result into the transcript pipeline `extract → synthesize_transcript → render_transcript`. No audio files are ever written to disk.
 
 ```
 [Microphone] → LiveTranscriber → [in-memory transcript]
-                                         ↓
-                               extract → synthesize → render → index.html
+                                         |
+                               extract → synthesize_transcript → render_transcript → index.html
 ```
 
 **Run:**
@@ -95,8 +105,8 @@ On first run, faster-whisper will download the `large-v3` model (~3 GB). Subsequ
 
 ```
 [System audio output] → loopback → LiveTranscriber → [in-memory transcript]
-                                                               ↓
-                                               extract → synthesize → render → index.html
+                                                               |
+                                               extract → synthesize_transcript → render_transcript → index.html
 ```
 
 **Run:**
@@ -114,8 +124,8 @@ python3 run.py --live-teams   # captures system audio, press Enter to stop, then
 
 | OS | How it works | Setup required |
 |---|---|---|
-| **Windows** | WASAPI loopback on the default output device | None — works out of the box ✅ |
-| **Linux** | PulseAudio/PipeWire monitor source (auto-detected) | None — works out of the box ✅ |
+| **Windows** | WASAPI loopback on the default output device | None — works out of the box |
+| **Linux** | PulseAudio/PipeWire monitor source (auto-detected) | None — works out of the box |
 | **macOS** | Scans for BlackHole or similar virtual audio cable | `brew install blackhole-2ch` (one time) |
 
 **macOS one-time setup:**
@@ -153,8 +163,8 @@ Each topic with N document shards makes roughly 3N + 1 API calls since every sha
 run.py         orchestrator
 ingest.py      file walker and text extraction
 extract.py     two-pass LLM extraction with confirmation
-synthesize.py  LLM synthesis into structured JSON
-render.py      JSON into interactive HTML
+synthesize.py  synthesize() for document briefings; synthesize_transcript() for live transcript reports
+render.py      render() for document briefings; render_transcript() for live transcript reports
 llm.py         API client with credential scrubbing and retry
 transcribe.py  real-time Whisper mic transcription (--live mode)
 config.yaml    paths and settings
