@@ -1,198 +1,84 @@
 # synthesis
 
-Point it at a folder of documents for an interactive HTML briefing, or use live transcription mode to capture lectures and meetings into a structured transcript report.
+> Points at a folder of documents or a live audio stream and renders one self-contained HTML briefing grounded in source quotes.
 
-<img width="1200" height="1461" alt="image" src="https://github.com/user-attachments/assets/e1dff283-92fe-44fb-8f41-84d14e8bdab1" />
+![Python](https://img.shields.io/badge/Python-3-3776AB?logo=python&logoColor=white)
 
-## Pipelines
+synthesis reads a set of documents (or transcribes a lecture or meeting in real time), extracts the facts that matter through repeated LLM passes, and produces a single static HTML page that opens in any browser with no build step. It runs as a small Python program: the standard library HTTP server for serving, `httpx` against the Anthropic Messages API for the LLM calls, `pyyaml` for config, and optionally faster-whisper for live transcription.
 
-**Document mode** — point it at a folder of docs and get a strategic HTML briefing:
+The core mechanic is grounding. Every extracted item carries a source quote, and only items that survive a re-read and an independent confirmation pass make it into the final briefing, which keeps invented content out of the output.
 
-```mermaid
-graph LR
-    A[Docs] --> B[Ingest]
-    B --> C["Extract\n(2-pass + confirm)"]
-    C --> D[Synthesize]
-    D --> E[Render]
-    E --> F[HTML Briefing]
-```
+<p align="center">
+  <img src="docs/flowchart.svg" alt="Pipeline diagram showing the document path (ingest, extract, synthesize, render) and the live path (transcribe, extract, synthesize transcript, render transcript), both ending in a served HTML page" width="640"><br>
+  <sub>The two pipelines: document mode and live transcript mode.</sub>
+</p>
 
-**Live / Transcript mode** — capture a lecture or meeting and get a structured report:
-
-```mermaid
-graph LR
-    A[Audio] --> B["Transcribe\n(Whisper)"]
-    B --> C[Extract]
-    C --> D[Synthesize Transcript]
-    D --> E[Render Transcript]
-    E --> F[HTML Report]
-```
-
-## Quick Start
+## Quickstart
 
 ```bash
-# 1. Install dependencies
-pip install pyyaml httpx --break-system-packages
-
-# 2. Set your API key
+git clone https://github.com/lambdaf-org/synthesis
+cd synthesis
+python3 -m pip install httpx pyyaml --break-system-packages
 export ANTHROPIC_API_KEY=sk-ant-...
-
-# 3. Edit config.yaml with your doc paths (see Config section below)
-
-# 4. Run
-python3 run.py
+# edit config.yaml: set a topic name and a path to the documents
+python3 src/run.py
 ```
 
-<details>
-<summary><strong>How it works</strong></summary>
+`python3 src/run.py` with no flags generates the briefing and then serves it at `http://localhost:8899`. The program needs an Anthropic API key (extraction and synthesis are LLM calls) and at least one readable path in `config.yaml`. PDF and DOCX input is optional and relies on `pdftotext` and `pandoc` being on the PATH. Plain text and Markdown need nothing extra. Live transcription modes need additional packages (see Live transcription below).
 
-There are two pipeline paths depending on the mode.
+### Configuration
 
-**Document mode** (`--generate`): `ingest → extract → synthesize → render` — produces a Strategic Briefing.
+The LLM key is read from an environment variable whose name comes from `api_key_env` in `config.yaml` (default `ANTHROPIC_API_KEY`). Everything else lives in `config.yaml`.
 
-**Ingest** walks through all configured paths and reads everything it can. PDFs go through `pdftotext`, DOCX through `pandoc`, and anything that isn't binary gets read as plain text. It also supports cloning GitHub repos if you prefix the path with `github:user/repo`.
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key used for every extract and synthesize call. The variable name is configurable via `api_key_env`. |
 
-**Extract** takes the ingested documents, shards them into chunks and sends each one through a two-pass LLM extraction. The first pass pulls out items, the second pass re-reads the same document looking for anything the first pass missed. Then a separate confirmation pass runs independently, and only items that both passes agree on and that have a grounded source quote actually make it through. This is what keeps hallucinations out.
+Key `config.yaml` settings: `model` (default `claude-sonnet-4-20250514`), `host` and `port` (default `0.0.0.0:8899`), `shard_size` (characters per LLM chunk), `max_file_bytes`, `skip_dirs` and `skip_extensions` (what ingest ignores), `topics` (a list of named document sets, each with its own `paths`), and a `live` block for transcription language, model size, and chunk length.
 
-**Synthesize** collects all confirmed items and asks the LLM to produce a structured JSON briefing with a status summary, risk level, each item with its date and urgency and dependencies, a recommended action sequence, any blockers, and key rules or constraints from the documents. Past deadlines are assumed done unless the documents explicitly say otherwise, so it doesn't panic about things you've already handled.
+## Features
 
-**Render** takes that JSON and generates a self-contained HTML file with a vertical timeline where a TODAY line separates what's behind from what's ahead, expandable cards for each item, a game plan section and a collapsible drawer for context like rules and people. No frameworks and no build step, just open the file in a browser.
+- **Two-pass grounded extraction**: each document chunk is read, re-read for missed items, then checked by a separate confirmation pass. Items pass when both runs agree and carry a source quote, so the briefing reflects the documents rather than the model's guesses. Info, resource, person, and rule items are kept even when unconfirmed, as long as they carry a source quote.
+- **Forward-looking briefing**: synthesis produces a status summary, a risk level, a chronological item list with dates and dependencies, a recommended action sequence, blockers, and key rules. Past deadlines are assumed met unless the documents state otherwise.
+- **Static HTML output**: render writes a single `index.html` with a vertical timeline split by a TODAY marker, expandable item cards, a game plan, and a collapsible context drawer. No frameworks, no bundler.
+- **Live transcription**: `--live` captures the microphone and `--live-teams` captures system audio output (Teams, Zoom, Meet) through automatic loopback detection, transcribes with faster-whisper, and feeds the result into a transcript-oriented report. Audio stays in memory and is never written to disk.
+- **GitHub ingest**: a path prefixed with `github:user/repo` is shallow-cloned and walked like a local folder.
+- **Credential scrubbing**: text is run through pattern and entropy filters before it leaves for the API, redacting API keys, bearer tokens, private keys, and database URLs.
 
-**Live/transcript mode** (`--live`, `--live-teams`): `transcribe → extract → synthesize_transcript → render_transcript` — produces a Transcript Report.
-
-**Transcribe** captures audio in real time via faster-whisper (microphone or system loopback) and produces an in-memory transcript. No audio is ever written to disk.
-
-**Synthesize Transcript** takes the extracted items and asks the LLM to produce a structured JSON transcript report with a summary, topics, key claims, speakers, and takeaways — oriented around what was said rather than what needs to be done.
-
-**Render Transcript** takes that JSON and generates a self-contained HTML report with a summary section, topic cards, key claims, people, takeaways, and a collapsible full transcript.
-
-</details>
-
-## Config
-
-```yaml
-api_key_env: ANTHROPIC_API_KEY
-model: claude-sonnet-4-20250514
-shard_size: 75000
-
-topics:
-  - name: My Project
-    paths:
-      - /path/to/docs
-      - github:user/repo
-```
-
-Each topic gets its own section in the briefing. You can add as many as you want and each one will be processed independently.
-
-## Run
+## Usage
 
 | Command | What it does |
-|---|---|
-| `python3 run.py` | Generate briefing and serve |
-| `python3 run.py --generate` | Generate only |
-| `python3 run.py --serve` | Serve existing `index.html` on `localhost:8899` |
-| `python3 run.py --live` | Live mic transcription → report → serve |
-| `python3 run.py --live-teams` | System audio loopback (Teams/Zoom/Meet) → report → serve |
+| --- | --- |
+| `python3 src/run.py` | Generate the briefing, then serve it. |
+| `python3 src/run.py --generate` | Generate `src/index.html` only. |
+| `python3 src/run.py --serve` | Serve an existing `src/index.html` at `localhost:8899`. |
+| `python3 src/run.py --live` | Microphone transcription into a transcript report, then serve. |
+| `python3 src/run.py --live-teams` | System audio loopback into a transcript report, then serve. |
 
-<details>
-<summary><strong>Live Transcription — setup, platform support, and config</strong></summary>
+Document mode runs `ingest -> extract -> synthesize -> render`. Ingest walks each configured path, pulling text from PDFs via `pdftotext`, DOCX via `pandoc`, and reading anything non-binary as plain text. Extract shards the text and runs the two-pass plus confirmation extraction described above. Synthesize asks the model for a structured JSON briefing. Render turns that JSON into the timeline HTML.
 
-To use the real-time Whisper transcription mode you need a few extra dependencies.
+Live mode runs `transcribe -> extract -> synthesize_transcript -> render_transcript` and produces a report built around what was said: a summary, topics with timestamps and quotes, key claims, people, takeaways, and a collapsible full transcript.
 
-**System prerequisites:**
+### Live transcription
 
-```bash
-# macOS
-brew install portaudio
-
-# Debian / Ubuntu
-sudo apt install libportaudio2
-```
-
-**Python dependencies:**
+The live modes need extra packages and a system audio library:
 
 ```bash
-pip install faster-whisper sounddevice numpy
+python3 -m pip install faster-whisper sounddevice numpy
+# macOS:  brew install portaudio
+# Debian: sudo apt install libportaudio2
 ```
 
-`--live` opens the microphone, transcribes in real-time using [faster-whisper](https://github.com/SYSTRAN/faster-whisper), and feeds the result into the transcript pipeline `extract → synthesize_transcript → render_transcript`. No audio files are ever written to disk.
+On first run faster-whisper downloads the configured model (the default `large-v3` is roughly 3 GB) and caches it. `--live-teams` finds the loopback device automatically: WASAPI on Windows, a PulseAudio or PipeWire monitor source on Linux, and a BlackHole or similar virtual cable on macOS (which needs `brew install blackhole-2ch` plus a Multi-Output Device set up once in Audio MIDI Setup). The `live` block in `config.yaml` sets the language, initial decoder prompt, model size, and chunk length. The default language is `de`, which covers Standard and Swiss German. Seeding `initial_prompt` with dialect text biases the decoder toward that vocabulary.
 
-```
-[Microphone] → LiveTranscriber → [in-memory transcript]
-                                         |
-                               extract → synthesize_transcript → render_transcript → index.html
-```
+## How it works
 
-On first run, faster-whisper will download the `large-v3` model (~3 GB). Subsequent runs reuse the cached model.
+Each topic with N shards makes roughly 3N + 1 API calls (extract, re-extract, and confirm per shard, plus one synthesize at the end). Extraction runs with a single worker to stay under per-minute output token limits, and `llm.py` retries on HTTP 429 with the `retry-after` header or exponential backoff. The rendered page is fully self-contained, so the generated `src/index.html` can be opened directly or served with `--serve`.
 
-`--live-teams` captures **whatever audio your system is currently playing** instead of the microphone — so it picks up the lecturer's voice directly from Teams, Zoom, or any other app, without any manual device selection.
+## Contributing
 
-```
-[System audio output] → loopback → LiveTranscriber → [in-memory transcript]
-                                                               |
-                                               extract → synthesize_transcript → render_transcript → index.html
-```
-
-| Mode | Command | Audio source |
-|---|---|---|
-| In-person lecture | `python run.py --live` | Microphone |
-| Teams / Zoom / Meet | `python run.py --live-teams` | System audio output (loopback) |
-
-### Platform support
-
-| OS | How it works | Setup required |
-|---|---|---|
-| **Windows** | WASAPI loopback on the default output device | None — works out of the box |
-| **Linux** | PulseAudio/PipeWire monitor source (auto-detected) | None — works out of the box |
-| **macOS** | Scans for BlackHole or similar virtual audio cable | `brew install blackhole-2ch` (one time) |
-
-**macOS one-time setup:**
-
-1. `brew install blackhole-2ch`
-2. Open **Audio MIDI Setup** (Spotlight → "Audio MIDI Setup")
-3. Click **+** → **Create Multi-Output Device** → check both your speakers and **BlackHole 2ch**
-4. Set the Multi-Output Device as your system output in System Settings → Sound
-5. Run `python3 run.py --live-teams` — BlackHole is auto-detected, no config needed
-
-The code scans all audio devices for names containing "blackhole", "loopback", or "virtual" on macOS, and "monitor" on Linux, so no `--device` flag or config entry is ever required.
-
-**Config** (`config.yaml`):
-
-```yaml
-live:
-  language: de              # BCP-47 language code; "de" covers Standard German and Swiss German
-  initial_prompt: "Grüezi, hüt bespräche mer d'Vorlesig..."  # seeds the decoder with dialect vocabulary
-  model_size: large-v3      # whisper model to use
-  chunk_seconds: 15         # transcribe every N seconds of captured audio
-  topic_name: "Live Lecture" # name used in the generated report
-```
-
-**Swiss German dialect support:** faster-whisper uses the `language: de` code for all German variants. Seeding the decoder with `initial_prompt` text written in Swiss German (e.g. `"Grüezi, hüt bespräche mer..."`) biases the model toward dialect-specific vocabulary and spelling, improving accuracy for Swiss German speakers.
-
-**Privacy:** no audio is ever saved to disk. All audio is processed in memory and discarded once the transcript is produced.
-
-</details>
-
-<details>
-<summary><strong>Cost</strong></summary>
-
-Each topic with N document shards makes roughly 3N + 1 API calls since every shard goes through extract, re-extract and confirm, plus one synthesize call at the end. On Anthropic API Tier 1 you're limited to 8k output tokens per minute, so keep `workers = 1` in `extract.py` to avoid getting rate limited. The retry logic in `llm.py` handles 429s with exponential backoff if it does happen.
-
-</details>
-
-## Files
-
-```
-run.py         orchestrator
-ingest.py      file walker and text extraction
-extract.py     two-pass LLM extraction with confirmation
-synthesize.py  synthesize() for document briefings; synthesize_transcript() for live transcript reports
-render.py      render() for document briefings; render_transcript() for live transcript reports
-llm.py         API client with credential scrubbing and retry
-transcribe.py  real-time Whisper mic transcription (--live mode)
-config.yaml    paths and settings
-```
+See [lambdaf-org/contributing](https://github.com/lambdaf-org/contributing).
 
 ## License
 
-MIT
+No license yet; all rights reserved. The repository contains no LICENSE file, though the project intends MIT.
