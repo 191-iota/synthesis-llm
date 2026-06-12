@@ -16,7 +16,7 @@
   <text x="400" y="40" text-anchor="middle" fill="#eef0f7" font-size="18" font-weight="700" letter-spacing="-0.5">synthesis-llm</text>
   <text x="400" y="60" text-anchor="middle" fill="#5c6380" font-size="10" letter-spacing="1.5" font-family="monospace">PIPELINE OVERVIEW</text>
 
-  <!-- ========== LEFT PATH: --generate ========== -->
+  <!-- ========== LEFT PATH: generate ========== -->
   <text x="220" y="100" text-anchor="middle" fill="#3b82f6" font-size="11" font-weight="600" font-family="monospace">--generate</text>
 
   <!-- Ingest -->
@@ -55,7 +55,7 @@
   <rect x="140" y="415" width="160" height="36" rx="18" fill="rgba(59,130,246,0.08)" stroke="#3b82f6" stroke-width="1.5"/>
   <text x="220" y="438" text-anchor="middle" fill="#3b82f6" font-size="11" font-weight="600">Strategic Briefing</text>
 
-  <!-- ========== RIGHT PATH: --live / --live-teams ========== -->
+  <!-- ========== RIGHT PATH: live / live-teams ========== -->
   <text x="580" y="100" text-anchor="middle" fill="#10b981" font-size="11" font-weight="600" font-family="monospace">--live / --live-teams</text>
 
   <!-- Transcribe -->
